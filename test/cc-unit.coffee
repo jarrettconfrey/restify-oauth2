@@ -4,7 +4,7 @@ require("chai").use(require("sinon-chai"))
 sinon = require("sinon")
 should = require("chai").should()
 Assertion = require("chai").Assertion
-restify = require("restify")
+errors = require("restify-errors")
 restifyOAuth2 = require("..")
 
 tokenEndpoint = "/token-uri"
@@ -23,7 +23,7 @@ Assertion.addMethod("unauthorized", (message, options) ->
     @_obj.header.should.have.been.calledWith("WWW-Authenticate", expectedWwwAuthenticate)
     @_obj.header.should.have.been.calledWith("Link", expectedLink)
     spyToTest.should.have.been.calledOnce
-    spyToTest.should.have.been.calledWith(sinon.match.instanceOf(restify.UnauthorizedError))
+    spyToTest.should.have.been.calledWith(sinon.match.instanceOf(errors.UnauthorizedError))
     spyToTest.should.have.been.calledWith(sinon.match.has("message", sinon.match(message)))
 )
 
@@ -32,7 +32,7 @@ Assertion.addMethod("unauthenticated", (message) ->
 
     @_obj.header.should.have.been.calledWith("Link", expectedLink)
     @_obj.send.should.have.been.calledOnce
-    @_obj.send.should.have.been.calledWith(sinon.match.instanceOf(restify.ForbiddenError))
+    @_obj.send.should.have.been.calledWith(sinon.match.instanceOf(errors.ForbiddenError))
     @_obj.send.should.have.been.calledWith(sinon.match.has("message", sinon.match(message)))
 )
 
@@ -44,14 +44,14 @@ Assertion.addMethod("bad", (message) ->
     @_obj.header.should.have.been.calledWith("WWW-Authenticate", expectedWwwAuthenticate)
     @_obj.header.should.have.been.calledWith("Link", expectedLink)
     @_obj.nextSpy.should.have.been.calledOnce
-    @_obj.nextSpy.should.have.been.calledWith(sinon.match.instanceOf(restify.BadRequestError))
+    @_obj.nextSpy.should.have.been.calledWith(sinon.match.instanceOf(errors.BadRequestError))
     @_obj.nextSpy.should.have.been.calledWith(sinon.match.has("message", sinon.match(message)))
 )
 
 Assertion.addMethod("oauthError", (errorClass, errorType, errorDescription) ->
     desiredBody = { error: errorType, error_description: errorDescription }
     @_obj.nextSpy.should.have.been.calledOnce
-    @_obj.nextSpy.should.have.been.calledWith(sinon.match.instanceOf(restify[errorClass + "Error"]))
+    @_obj.nextSpy.should.have.been.calledWith(sinon.match.instanceOf(errors[errorClass + "Error"]))
     @_obj.nextSpy.should.have.been.calledWith(sinon.match.has("message", errorDescription))
     @_obj.nextSpy.should.have.been.calledWith(sinon.match.has("body", desiredBody))
 )
@@ -376,7 +376,7 @@ describe "Client Credentials flow", ->
             describe "when the `authenticateToken` calls back with a 401 error", ->
                 beforeEach ->
                     @errorMessage = "The authentication failed for some reason."
-                    @authenticateToken.yields(new restify.UnauthorizedError(@errorMessage))
+                    @authenticateToken.yields(new errors.UnauthorizedError(@errorMessage))
 
                 it "should resume the request and send the error, along with WWW-Authenticate and Link headers", ->
                     @doItBase()
@@ -386,7 +386,7 @@ describe "Client Credentials flow", ->
 
             describe "when the `authenticateToken` calls back with a non-401 error", ->
                 beforeEach ->
-                    @error = new restify.ForbiddenError("The authentication succeeded but this resource is forbidden.")
+                    @error = new errors.ForbiddenError("The authentication succeeded but this resource is forbidden.")
                     @authenticateToken.yields(@error)
 
                 it "should resume the request and send the error, but no headers", ->
